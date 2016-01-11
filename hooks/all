@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+# Python Example for Python GitHub Webhooks
+import sys
+from sh import git
+import os
+import logging
+logging.basicConfig(filename='/tmp/webhook.log',level=logging.INFO)
+p = logging.info
+
+def warning(*objs):
+    print(*objs, file=sys.stderr)
+
+warning("Syncing gitlab with github")
+os.chdir("/gitlab_helper")
+
+# Reset Configuration for github repository
+git.config("remote.github.mirror", "true")
+git.config("remote.github.fetch", "+refs/*:refs/*")
+
+# Reset Configuration for gitlab repository
+git.config("--unset", "remote.gitlab.mirror", _ok_code=[0,5])
+git.config("--unset-all", "remote.gitlab.push", _ok_code=[0,5])
+git.config("--add", "remote.gitlab.push", '+refs/heads/*:refs/heads/*')
+git.config("--add", "remote.gitlab.push", '+refs/tags/*:refs/tags/*')
+
+# Fetch from github
+git.fetch("github", "--prune", "--force", _out=p, _err=p)
+git.fetch("github", "--prune", "--force", "--tags", _out=p, _err=p)
+
+# Push to gitlab
+git.push("gitlab", _out=p, _err=p)
+git.push("gitlab", "--force", _out=p, _err=p)
+
+warning("Finished")
